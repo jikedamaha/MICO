@@ -109,6 +109,7 @@ void localTcpClient_thread(void *inFd)
   fd_set readfds;
   struct timeval_t t;
 
+  acq_data_t acq_message_rcv;
   uint16_t adc = 0;
   float volt = 0;
 
@@ -136,7 +137,7 @@ void localTcpClient_thread(void *inFd)
   t.tv_sec = 4;
   t.tv_usec = 0;
 
-  err = mico_rtos_pop_from_queue(&acq_queue, (void *)&adc, 0);
+  err = mico_rtos_pop_from_queue(&acq_queue, (void *)&acq_message_rcv, 0);
 
   while(1){
 
@@ -160,7 +161,8 @@ void localTcpClient_thread(void *inFd)
     }
 
     /*recv adc data and send it to server*/
-    err = mico_rtos_pop_from_queue(&acq_queue, (void *)&adc, 2000);
+    err = mico_rtos_pop_from_queue(&acq_queue, (void *)&acq_message_rcv, 2000);
+    adc = acq_message_rcv.adc_value[0];
 
     if(err == kNoErr)
     {

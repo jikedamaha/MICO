@@ -71,7 +71,8 @@ void remoteTcpClient_thread(void *inContext)
   uint8_t *inDataBuffer = NULL;
   uint8_t *outDataBuffer = NULL;
 
-  uint32_t adc = 0;
+  acq_data_t acq_message_rcv;
+  uint16_t adc = 0;
   float volt = 0;
   float i = 0;
 
@@ -97,7 +98,7 @@ void remoteTcpClient_thread(void *inContext)
   t.tv_sec = 4;
   t.tv_usec = 0;
 
-  err = mico_rtos_pop_from_queue(&acq_queue, (void *)&adc, 0);
+  err = mico_rtos_pop_from_queue(&acq_queue, (void *)&acq_message_rcv, 0);
 
   while(1) {
     if(remoteTcpClient_fd == -1 ) {
@@ -120,7 +121,8 @@ void remoteTcpClient_thread(void *inContext)
                  remoteTcpClient_fd);
     }else{
       /*recv adc data and send http request*/
-      err = mico_rtos_pop_from_queue(&acq_queue, (void *)&adc, 0);
+      err = mico_rtos_pop_from_queue(&acq_queue, (void *)&acq_message_rcv, 0);
+      adc = acq_message_rcv.adc_value[0];
 
       if(err == kNoErr)
       {

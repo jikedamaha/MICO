@@ -6,10 +6,10 @@
 
 extern mico_queue_t acq_queue;
 
-struct acq_message{
+typedef struct{
   uint16_t adc_value[3];
   uint8_t on_off;
-};
+}acq_data_t;
 
 float get_adc2volt(uint16_t adc_value);
 

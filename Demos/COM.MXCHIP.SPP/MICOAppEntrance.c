@@ -60,7 +60,7 @@ OSStatus MICOStartApplication( mico_Context_t * const inContext )
   if(inContext->flashContentInRam.micoSystemConfig.bonjourEnable == true)
     MICOStartBonjourService( Station, inContext );
 
-  mico_rtos_init_queue(&acq_queue, NULL, sizeof(uint32_t), 1);
+  mico_rtos_init_queue(&acq_queue, NULL, sizeof(acq_data_t), 1);
 
   /*UART receive thread*/
   uart_config.baud_rate    = inContext->flashContentInRam.appConfig.USART_BaudRate;

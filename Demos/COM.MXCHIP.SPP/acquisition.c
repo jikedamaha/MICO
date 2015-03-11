@@ -4,17 +4,18 @@
 
 #include "acquisition.h"
 
-#define acquisition_log(M, ...) custom_log("ADC", M, ##__VA_ARGS__)
-#define acquisition_log_trace() custom_log_trace("ADC")
+#define acquisition_log(M, ...) custom_log("ACQ", M, ##__VA_ARGS__)
+#define acquisition_log_trace() custom_log_trace("ACQ")
 
 mico_queue_t acq_queue;
+acq_data_t acq_message;
 
 void acquisition_thread(void *inFd)
 {
   OSStatus err;
-  uint16_t adc_value = 0;
 
   #if 0
+  uint16_t adc_value = 0;
   int i = 0;
   uint16_t max_val = 0;
   uint16_t min_val = 0;
@@ -25,6 +26,8 @@ void acquisition_thread(void *inFd)
   {
     acquisition_log("MicoAdcInitialize err = %d", err);
   }
+
+  err = Mico
 
   sleep(10);
 
@@ -51,14 +54,14 @@ void acquisition_thread(void *inFd)
     }
 
 
-    adc_value = (max_val - min_val)/0.707;
+    acq_message.adc_value[0] = (max_val - min_val)/0.707;
     #endif
 
-    err = MicoAdcTakeSample(MICO_ADC_1, (uint16_t *)&adc_value);
-    acquisition_log("MicoAdcTakeSample: %d, err = %d", adc_value, err);
+    err = MicoAdcTakeSample(MICO_ADC_1, (uint16_t *)&acq_message.adc_value[0]);
+    acquisition_log("MicoAdcTakeSample: %d, err = %d", acq_message.adc_value[0], err);
     if(!err)
     {
-      err = mico_rtos_push_to_queue(&acq_queue, (void *)&adc_value, 0);
+      err = mico_rtos_push_to_queue(&acq_queue, (void *)&acq_message, 0);
       acquisition_log("adc_value pushed");
     }
 
