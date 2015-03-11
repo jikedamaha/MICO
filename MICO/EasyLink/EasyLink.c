@@ -40,7 +40,6 @@
 #include "SocketUtils.h"
 
 #include "EasyLink.h"
-#include "SoftAp/EasyLinkSoftAP.h"
   
 // EasyLink HTTP messages
 #define kEasyLinkURLAuth          "/auth-setup"
@@ -79,12 +78,23 @@ void EasyLinkNotify_WifiStatusHandler(WiFiEvent event, mico_Context_t * const in
   require(inContext, exit);
   switch (event) {
   case NOTIFY_STATION_UP:
+    easylink_log("Access point connected");
+    MicoRfLed(true);
     mico_rtos_set_semaphore(&easylink_sem);
     micoWlanGetIPStatus(&para, Station);
     strncpy(inContext->flashContentInRam.micoSystemConfig.localIp, para.ip, maxIpLen);
     strncpy(inContext->flashContentInRam.micoSystemConfig.netMask, para.mask, maxIpLen);
     strncpy(inContext->flashContentInRam.micoSystemConfig.gateWay, para.gate, maxIpLen);
     strncpy(inContext->flashContentInRam.micoSystemConfig.dnsServer, para.dns, maxIpLen);
+    break;
+  case NOTIFY_STATION_DOWN:
+    MicoRfLed(false);
+    break;
+  case NOTIFY_AP_UP:
+    MicoRfLed(true);
+    break;
+  case NOTIFY_AP_DOWN:
+    MicoRfLed(false);
     break;
   default:
     break;
@@ -262,7 +272,7 @@ exit:
   return err;
 }
 
-static void _easylinkConnectWiFi( mico_Context_t * const inContext)
+void _easylinkConnectWiFi( mico_Context_t * const inContext)
 {
   easylink_log_trace();
   network_InitTypeDef_adv_st wNetConfig;
@@ -285,14 +295,44 @@ static void _easylinkConnectWiFi( mico_Context_t * const inContext)
   easylink_log("connect to %s.....", wNetConfig.ap_info.ssid);
 }
 
-static void _easylinkStartSoftAp( mico_Context_t * const inContext)
+void _easylinkStartSoftAp( mico_Context_t * const inContext)
 {
-  startEasyLinkSoftAP( inContext);
+  OSStatus err;
+  easylink_log_trace();
+  network_InitTypeDef_st wNetConfig;
+
+  memset(&wNetConfig, 0, sizeof(network_InitTypeDef_st));
+  wNetConfig.wifi_mode = Soft_AP;
+  snprintf(wNetConfig.wifi_ssid, 32, "MXCHIP_%c%c%c%c%c%c", inContext->micoStatus.mac[9],  inContext->micoStatus.mac[10], \
+                                                            inContext->micoStatus.mac[12], inContext->micoStatus.mac[13],
+                                                            inContext->micoStatus.mac[15], inContext->micoStatus.mac[16] );
+  strcpy((char*)wNetConfig.wifi_key, "");
+  strcpy((char*)wNetConfig.local_ip_addr, "10.10.10.1");
+  strcpy((char*)wNetConfig.net_mask, "255.255.255.0");
+  strcpy((char*)wNetConfig.gateway_ip_addr, "10.10.10.1");
+  wNetConfig.dhcpMode = DHCP_Server;
+  micoWlanStart(&wNetConfig);
+  easylink_log("Establish soft ap: %s.....", wNetConfig.wifi_ssid);
+
+  if(inContext->flashContentInRam.micoSystemConfig.bonjourEnable == true){
+    err = MICOStartBonjourService( Soft_AP , inContext );
+    require_noerr(err, exit);
+  }
+  
+  if(inContext->flashContentInRam.micoSystemConfig.configServerEnable == true){
+    err = MICOStartConfigServer  ( inContext );
+    require_noerr(err, exit);
+  }
+
+  ConfigSoftApWillStart( inContext );
+
+exit:
+  return;
 }
 
 
 
-static void _easylinkConnectWiFi_fast( mico_Context_t * const inContext)
+void _easylinkConnectWiFi_fast( mico_Context_t * const inContext)
 {
   easylink_log_trace();
   network_InitTypeDef_adv_st wNetConfig;
@@ -393,22 +433,13 @@ void easylink_thread(void *inContext)
 
   easylink_log_trace();
   require_action(easylink_sem, threadexit, err = kNotPreparedErr);
-      
-  if(Context->flashContentInRam.micoSystemConfig.easyLinkByPass == EASYLINK_BYPASS){
-    Context->flashContentInRam.micoSystemConfig.easyLinkByPass = EASYLINK_BYPASS_NO;
-    MICOUpdateConfiguration(Context);
-    _easylinkConnectWiFi_fast(Context);
-  }else if(Context->flashContentInRam.micoSystemConfig.easyLinkByPass == EASYLINK_SOFT_AP_BYPASS){
-    ConfigWillStop( Context );
-    _easylinkStartSoftAp(Context);
-    mico_rtos_delete_thread(NULL);
-    return;
-  }else{
-#ifdef EasyLink_Plus
-    easylink_log("Start easylink plus mode");
+  
+  easylink_log("Start easylink");
+  
+  if(Context->flashContentInRam.micoSystemConfig.easyLinkEnable != false){
+#if ( MICO_CONFIG_MODE == CONFIG_MODE_EASYLINK_PLUS)
     micoWlanStartEasyLinkPlus(EasyLink_TimeOut/1000);
 #else
-    easylink_log("Start easylink V2");
     micoWlanStartEasyLink(EasyLink_TimeOut/1000);
 #endif 
     mico_rtos_get_semaphore(&easylink_sem, MICO_WAIT_FOREVER);
@@ -416,12 +447,17 @@ void easylink_thread(void *inContext)
       _easylinkConnectWiFi(Context);
     else{
       msleep(20);
-      _cleanEasyLinkResource( Context );
-      ConfigWillStop( Context );
       _easylinkStartSoftAp(Context);
       mico_rtos_delete_thread(NULL);
       return;
     }
+      
+  }else{
+    mico_rtos_lock_mutex(&Context->flashContentInRam_mutex);
+    Context->flashContentInRam.micoSystemConfig.easyLinkEnable = true;
+    MICOUpdateConfiguration(Context);
+    mico_rtos_unlock_mutex(&Context->flashContentInRam_mutex);
+    _easylinkConnectWiFi_fast(Context);
   }
 
   err = mico_rtos_get_semaphore(&easylink_sem, EasyLink_ConnectWlan_Timeout);
@@ -474,6 +510,7 @@ void easylink_thread(void *inContext)
           case kNoSpaceErr:
             easylink_log("ERROR: Cannot fit HTTPHeader.");
             goto Reconn;
+          break;
 
           case kConnectionErr:
             // NOTE: kConnectionErr from SocketReadHTTPHeader means it's closed
@@ -488,7 +525,8 @@ void easylink_thread(void *inContext)
               msleep(20);
             }
             goto threadexit;
-
+             //goto Reconn;
+          break;
           default:
             easylink_log("ERROR: HTTP Header parse internal error: %d", err);
             goto Reconn;
@@ -531,7 +569,7 @@ OSStatus _FTCRespondInComingMessage(int fd, HTTPHeader_t* inHeader, mico_Context
         easylink_log("Easylink server accepted!");
         err = kNoErr;
         goto exit;
-
+      break;
       case kStatusOK:
         easylink_log("Easylink server respond status OK!");
         err = HTTPGetHeaderField( inHeader->buf, inHeader->len, "Content-Type", NULL, NULL, &value, &valueSize, NULL );
@@ -539,13 +577,10 @@ OSStatus _FTCRespondInComingMessage(int fd, HTTPHeader_t* inHeader, mico_Context
         if( strnicmpx( value, valueSize, kMIMEType_JSON ) == 0 ){
           easylink_log("Receive JSON config data!");
           err = ConfigIncommingJsonMessage( inHeader->extraDataPtr, inContext);
-          inContext->flashContentInRam.micoSystemConfig.configured = allConfigured;
-          err = MICOUpdateConfiguration(inContext);
           SocketClose(&fd);
           inContext->micoStatus.sys_state = eState_Software_Reset;
           require(inContext->micoStatus.sys_state_change_sem, exit);
           mico_rtos_set_semaphore(&inContext->micoStatus.sys_state_change_sem);
-          mico_thread_sleep(MICO_WAIT_FOREVER);
         }
 #ifdef MICO_FLASH_FOR_UPDATE
         else if(strnicmpx( value, valueSize, kMIMEType_MXCHIP_OTA ) == 0){
@@ -556,14 +591,13 @@ OSStatus _FTCRespondInComingMessage(int fd, HTTPHeader_t* inHeader, mico_Context
           inContext->flashContentInRam.bootTable.start_address = UPDATE_START_ADDRESS;
           inContext->flashContentInRam.bootTable.type = 'A';
           inContext->flashContentInRam.bootTable.upgrade_type = 'U';
-          inContext->flashContentInRam.micoSystemConfig.easyLinkByPass = EASYLINK_BYPASS;
+          inContext->flashContentInRam.micoSystemConfig.easyLinkEnable = false;
           MICOUpdateConfiguration(inContext);
           mico_rtos_unlock_mutex(&inContext->flashContentInRam_mutex);
           SocketClose(&fd);
           inContext->micoStatus.sys_state = eState_Software_Reset;
           require(inContext->micoStatus.sys_state_change_sem, exit);
           mico_rtos_set_semaphore(&inContext->micoStatus.sys_state_change_sem);
-          mico_thread_sleep(MICO_WAIT_FOREVER);
         }
 #endif
         else{
@@ -571,7 +605,7 @@ OSStatus _FTCRespondInComingMessage(int fd, HTTPHeader_t* inHeader, mico_Context
         }
         err = kNoErr;
         goto exit;
-        
+      break;
       default:
         goto exit;
     }

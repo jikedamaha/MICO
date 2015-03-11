@@ -60,7 +60,7 @@
         </option>
         <option>
           <name>FPU</name>
-          <version>2</version>
+          <version>3</version>
           <state>0</state>
         </option>
         <option>
@@ -87,7 +87,7 @@
         </option>
         <option>
           <name>OGLastSavedByProductVersion</name>
-          <state>7.30.1.7765</state>
+          <state>7.30.4.8186</state>
         </option>
         <option>
           <name>GeneralEnableMisra</name>
@@ -173,6 +173,7 @@
         <option>
           <name>CCDefines</name>
           <state>USE_STDPERIPH_DRIVER</state>
+          <state>DEBUG</state>
         </option>
         <option>
           <name>CCPreprocFile</name>
@@ -315,7 +316,6 @@
           <state>$PROJ_DIR$\..\..\..\Platform\Common\Cortex-M3\STM32F2xx\STM32F2xx_Drv</state>
           <state>$PROJ_DIR$\..\..\..\Platform\Common\Drivers\spi_flash</state>
           <state>$PROJ_DIR$\..\..\..\Platform\Common\Cortex-M3\STM32F2xx\STM32F2xx_Drv\STM32F2xx_HAL_Driver\Inc</state>
-          <state>$PROJ_DIR$\..\..\..\include\EasyCloud</state>
         </option>
         <option>
           <name>CCStdIncCheck</name>
@@ -625,6 +625,7 @@
       <data>
         <extensions></extensions>
         <cmdline></cmdline>
+        <hasPrio>0</hasPrio>
       </data>
     </settings>
     <settings>
@@ -689,7 +690,7 @@
         </option>
         <option>
           <name>IlinkDefines</name>
-          <state></state>
+          <state>DEBUG=1</state>
         </option>
         <option>
           <name>IlinkConfigDefines</name>
@@ -1015,7 +1016,7 @@
         </option>
         <option>
           <name>FPU</name>
-          <version>2</version>
+          <version>3</version>
           <state>0</state>
         </option>
         <option>
@@ -1584,6 +1585,7 @@
       <data>
         <extensions></extensions>
         <cmdline></cmdline>
+        <hasPrio>0</hasPrio>
       </data>
     </settings>
     <settings>
@@ -1974,7 +1976,7 @@
         </option>
         <option>
           <name>FPU</name>
-          <version>2</version>
+          <version>3</version>
           <state>0</state>
         </option>
         <option>
@@ -2538,6 +2540,7 @@
       <data>
         <extensions></extensions>
         <cmdline></cmdline>
+        <hasPrio>0</hasPrio>
       </data>
     </settings>
     <settings>
@@ -2898,7 +2901,7 @@
         <option>
           <name>Variant</name>
           <version>21</version>
-          <state>40</state>
+          <state>38</state>
         </option>
         <option>
           <name>GEndianMode</name>
@@ -2928,7 +2931,7 @@
         </option>
         <option>
           <name>FPU</name>
-          <version>2</version>
+          <version>3</version>
           <state>0</state>
         </option>
         <option>
@@ -2955,7 +2958,7 @@
         </option>
         <option>
           <name>OGLastSavedByProductVersion</name>
-          <state>7.30.1.7765</state>
+          <state>7.30.4.8186</state>
         </option>
         <option>
           <name>GeneralEnableMisra</name>
@@ -2967,7 +2970,7 @@
         </option>
         <option>
           <name>OGChipSelectEditMenu</name>
-          <state>STM32F411CE	ST STM32F411CE</state>
+          <state>STM32F205ZG	ST STM32F205ZG</state>
         </option>
         <option>
           <name>GenLowLevelInterface</name>
@@ -3006,12 +3009,12 @@
         <option>
           <name>GFPUCoreSlave</name>
           <version>21</version>
-          <state>40</state>
+          <state>38</state>
         </option>
         <option>
           <name>GBECoreSlave</name>
           <version>21</version>
-          <state>40</state>
+          <state>38</state>
         </option>
         <option>
           <name>OGUseCmsis</name>
@@ -3183,7 +3186,6 @@
           <state>$PROJ_DIR$\..\..\..\Platform\Common\Cortex-M4</state>
           <state>$PROJ_DIR$\..\..\..\Platform\Common\Cortex-M4\STM32F4xx\STM32F4xx_Drv</state>
           <state>$PROJ_DIR$\..\..\..\Platform\Common\Drivers\spi_flash</state>
-          <state>$PROJ_DIR$\..\..\..\include\EasyCloud</state>
         </option>
         <option>
           <name>CCStdIncCheck</name>
@@ -3493,6 +3495,7 @@
       <data>
         <extensions></extensions>
         <cmdline></cmdline>
+        <hasPrio>0</hasPrio>
       </data>
     </settings>
     <settings>
@@ -3557,7 +3560,7 @@
         </option>
         <option>
           <name>IlinkDefines</name>
-          <state></state>
+          <state>DEBUG=1</state>
         </option>
         <option>
           <name>IlinkConfigDefines</name>
@@ -3828,6 +3831,9 @@
   <group>
     <name>Application</name>
     <file>
+      <name>$PROJ_DIR$\..\..\..\Demos\COM.WECHAT.SPP\LocalTcpServer.c</name>
+    </file>
+    <file>
       <name>$PROJ_DIR$\..\..\..\Demos\COM.WECHAT.SPP\MICOAppDefine.h</name>
     </file>
     <file>
@@ -3843,13 +3849,13 @@
       <name>$PROJ_DIR$\..\..\..\Demos\COM.WECHAT.SPP\MicoDefaults.h</name>
     </file>
     <file>
-      <name>$PROJ_DIR$\..\..\..\Demos\COM.WECHAT.SPP\MicoVirtualDevice.c</name>
+      <name>$PROJ_DIR$\..\..\..\Demos\COM.WECHAT.SPP\RemoteTcpClient.c</name>
     </file>
     <file>
-      <name>$PROJ_DIR$\..\..\..\Demos\COM.WECHAT.SPP\MVDCloudInterfaces.c</name>
+      <name>$PROJ_DIR$\..\..\..\Demos\COM.WECHAT.SPP\SppProtocol.c</name>
     </file>
     <file>
-      <name>$PROJ_DIR$\..\..\..\Demos\COM.WECHAT.SPP\MVDDeviceInterfaces.c</name>
+      <name>$PROJ_DIR$\..\..\..\Demos\COM.WECHAT.SPP\UartRecv.c</name>
     </file>
   </group>
   <group>
@@ -3950,48 +3956,36 @@
   <group>
     <name>include</name>
     <group>
-      <name>EasyCloud</name>
-      <file>
-        <name>$PROJ_DIR$\..\..\..\include\EasyCloud\EasyCloudService.h</name>
-      </file>
-      <file>
-        <name>$PROJ_DIR$\..\..\..\include\EasyCloud\EasyCloudServiceDef.h</name>
-      </file>
-      <file>
-        <name>$PROJ_DIR$\..\..\..\include\EasyCloud\EasyCloudUtils.h</name>
-      </file>
-    </group>
-    <group>
       <name>MicoDriver</name>
       <file>
-        <name>$PROJ_DIR$\..\..\..\include\MicoDrivers\MICODriverAdc.h</name>
+        <name>$PROJ_DIR$\..\..\..\include\MicoDrivers\MicoDriverAdc.h</name>
       </file>
       <file>
-        <name>$PROJ_DIR$\..\..\..\include\MicoDrivers\MICODriverGpio.h</name>
+        <name>$PROJ_DIR$\..\..\..\include\MicoDrivers\MicoDriverGpio.h</name>
       </file>
       <file>
-        <name>$PROJ_DIR$\..\..\..\include\MicoDrivers\MICODriverI2c.h</name>
+        <name>$PROJ_DIR$\..\..\..\include\MicoDrivers\MicoDriverI2c.h</name>
       </file>
       <file>
-        <name>$PROJ_DIR$\..\..\..\include\MicoDrivers\MICODriverMFiAuth.h</name>
+        <name>$PROJ_DIR$\..\..\..\include\MicoDrivers\MicoDriverMFiAuth.h</name>
       </file>
       <file>
-        <name>$PROJ_DIR$\..\..\..\include\MicoDrivers\MICODriverPwm.h</name>
+        <name>$PROJ_DIR$\..\..\..\include\MicoDrivers\MicoDriverPwm.h</name>
       </file>
       <file>
-        <name>$PROJ_DIR$\..\..\..\include\MicoDrivers\MICODriverRng.h</name>
+        <name>$PROJ_DIR$\..\..\..\include\MicoDrivers\MicoDriverRng.h</name>
       </file>
       <file>
-        <name>$PROJ_DIR$\..\..\..\include\MicoDrivers\MICODriverRtc.h</name>
+        <name>$PROJ_DIR$\..\..\..\include\MicoDrivers\MicoDriverRtc.h</name>
       </file>
       <file>
-        <name>$PROJ_DIR$\..\..\..\include\MicoDrivers\MICODriverSpi.h</name>
+        <name>$PROJ_DIR$\..\..\..\include\MicoDrivers\MicoDriverSpi.h</name>
       </file>
       <file>
-        <name>$PROJ_DIR$\..\..\..\include\MicoDrivers\MICODriverUART.h</name>
+        <name>$PROJ_DIR$\..\..\..\include\MicoDrivers\MicoDriverUart.h</name>
       </file>
       <file>
-        <name>$PROJ_DIR$\..\..\..\include\MicoDrivers\MICODriverWdg.h</name>
+        <name>$PROJ_DIR$\..\..\..\include\MicoDrivers\MicoDriverWdg.h</name>
       </file>
     </group>
     <file>
@@ -4004,7 +3998,7 @@
       <name>$PROJ_DIR$\..\..\..\include\MicoAlgorithm.h</name>
     </file>
     <file>
-      <name>$PROJ_DIR$\..\..\..\include\MICOPlatform.h</name>
+      <name>$PROJ_DIR$\..\..\..\include\MicoPlatform.h</name>
     </file>
     <file>
       <name>$PROJ_DIR$\..\..\..\include\MICORTOS.h</name>
@@ -4021,18 +4015,6 @@
   </group>
   <group>
     <name>Library</name>
-    <group>
-      <name>EasyCloud</name>
-      <file>
-        <name>$PROJ_DIR$\..\..\..\Library\EasyCloud\MicoEasyCloudService_20150128_v0.2.8_debug.a</name>
-        <excluded>
-          <configuration>EMW3162</configuration>
-        </excluded>
-      </file>
-      <file>
-        <name>$PROJ_DIR$\..\..\..\Library\EasyCloud\MicoEasyCloudService_20150128_v0.2.8_release.a</name>
-      </file>
-    </group>
     <file>
       <name>$PROJ_DIR$\..\..\..\Library\MICOConfig.c</name>
     </file>
@@ -4074,15 +4056,20 @@
     <group>
       <name>AIRKISS</name>
       <file>
-        <name>$PROJ_DIR$\..\..\..\MICO\Airkiss\Airkiss.c</name>
+        <name>$PROJ_DIR$\..\..\..\MICO\Airkiss\Airkiss_CM3_Debug.a</name>
+        <excluded>
+          <configuration>Nucleo_411RE</configuration>
+          <configuration>EMW3165</configuration>
+        </excluded>
       </file>
       <file>
-        <name>$PROJ_DIR$\..\..\..\MICO\Airkiss\Airkiss.h</name>
+        <name>$PROJ_DIR$\..\..\..\MICO\Airkiss\Airkiss_CM4F_Debug.a</name>
+        <excluded>
+          <configuration>EMW3162</configuration>
+          <configuration>MICO_EVB_1</configuration>
+        </excluded>
       </file>
     </group>
-    <file>
-      <name>$PROJ_DIR$\..\..\..\MICO\SoftAP\EasyLinkSoftAP.c</name>
-    </file>
     <file>
       <name>$PROJ_DIR$\..\..\..\MICO\MICOConfigMenu.c</name>
     </file>
@@ -4094,9 +4081,6 @@
     </file>
     <file>
       <name>$PROJ_DIR$\..\..\..\MICO\MICOEntrance.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\..\..\..\MICO\MICOMfgtest.c</name>
     </file>
     <file>
       <name>$PROJ_DIR$\..\..\..\MICO\MICONotificationCenter.c</name>

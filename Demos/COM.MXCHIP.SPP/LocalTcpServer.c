@@ -1,6 +1,6 @@
 /**
   ******************************************************************************
-  * @file    LocalTcpServer.c 
+  * @file    LocalTcpServer.c
   * @author  William Xu
   * @version V1.0.0
   * @date    05-May-2014
@@ -18,7 +18,7 @@
   *
   * <h2><center>&copy; COPYRIGHT 2014 MXCHIP Inc.</center></h2>
   ******************************************************************************
-  */ 
+  */
 
 #include "MICO.h"
 #include "MICODefine.h"
@@ -26,17 +26,21 @@
 
 #include "SppProtocol.h"
 #include "SocketUtils.h"
+#include "stringUtils.h"
+
+#include "acquisition.h"
 
 #define server_log(M, ...) custom_log("TCP SERVER", M, ##__VA_ARGS__)
 #define server_log_trace() custom_log_trace("TCP SERVER")
 
-const int loopBackPortTable[20] = { 1004, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 
+const int loopBackPortTable[20] = { 1004, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013,
                                     1014, 1015, 1016, 1017, 1018, 1019, 1020, 1021, 1022, 1023};
 
 static void localTcpClient_thread(void *inFd);
 static mico_Context_t *Context;
 
 mico_thread_t   localTcpClient_thread_handler;
+
 
 void localTcpServer_thread(void *inContext)
 {
@@ -48,13 +52,13 @@ void localTcpServer_thread(void *inContext)
   int sockaddr_t_size;
   fd_set readfds;
   char ip_address[16];
-  
+
   int localTcpListener_fd = -1;
 
-  for(i=0; i < MAX_Local_Client_Num; i++) 
+  for(i=0; i < MAX_Local_Client_Num; i++)
     Context->appStatus.loopBack_PortList[i] = 0;
 
-  /*Establish a TCP server fd that accept the tcp clients connections*/ 
+  /*Establish a TCP server fd that accept the tcp clients connections*/
   localTcpListener_fd = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP );
   require_action(IsValidSocket( localTcpListener_fd ), exit, err = kNoResourcesErr );
   addr.s_ip = INADDR_ANY;
@@ -66,10 +70,10 @@ void localTcpServer_thread(void *inContext)
   require_noerr( err, exit );
 
   server_log("Server established at port: %d, fd: %d", Context->flashContentInRam.appConfig.localServerPort, localTcpListener_fd);
-  
+
   while(1){
     FD_ZERO(&readfds);
-    FD_SET(localTcpListener_fd, &readfds);  
+    FD_SET(localTcpListener_fd, &readfds);
     select(1, &readfds, NULL, NULL, NULL);
 
     /*Check tcp connection requests */
@@ -79,7 +83,7 @@ void localTcpServer_thread(void *inContext)
       if (j > 0) {
         inet_ntoa(ip_address, addr.s_ip );
         server_log("Client %s:%d connected, fd: %d", ip_address, addr.s_port, j);
-        if(kNoErr != mico_rtos_create_thread(NULL, MICO_APPLICATION_PRIORITY, "Local Clients", localTcpClient_thread, STACK_SIZE_LOCAL_TCP_CLIENT_THREAD, &j) ) 
+        if(kNoErr != mico_rtos_create_thread(NULL, MICO_APPLICATION_PRIORITY, "Local Clients", localTcpClient_thread, STACK_SIZE_LOCAL_TCP_CLIENT_THREAD, &j) )
           SocketClose(&j);
       }
     }
@@ -105,6 +109,9 @@ void localTcpClient_thread(void *inFd)
   fd_set readfds;
   struct timeval_t t;
 
+  uint16_t adc = 0;
+  float volt = 0;
+
   inDataBuffer = malloc(wlanBufferLen);
   require_action(inDataBuffer, exit, err = kNoMemoryErr);
   outDataBuffer = malloc(wlanBufferLen);
@@ -128,12 +135,14 @@ void localTcpClient_thread(void *inFd)
 
   t.tv_sec = 4;
   t.tv_usec = 0;
-  
+
+  err = mico_rtos_pop_from_queue(&acq_queue, (void *)&adc, 0);
+
   while(1){
 
     FD_ZERO(&readfds);
-    FD_SET(clientFd, &readfds); 
-    FD_SET(clientLoopBackFd, &readfds); 
+    FD_SET(clientFd, &readfds);
+    FD_SET(clientLoopBackFd, &readfds);
 
     select(1, &readfds, NULL, NULL, &t);
 
@@ -143,11 +152,30 @@ void localTcpClient_thread(void *inFd)
       SocketSend( clientFd, outDataBuffer, len );
     }
 
-    /*Read data from tcp clients and process these data using HA protocol */ 
+    /*Read data from tcp clients and process these data using HA protocol */
     if (FD_ISSET(clientFd, &readfds)) {
       len = recv(clientFd, inDataBuffer, wlanBufferLen, 0);
       require_action_quiet(len>0, exit, err = kConnectionErr);
       sppWlanCommandProcess(inDataBuffer, &len, clientFd, Context);
+    }
+
+    /*recv adc data and send it to server*/
+    err = mico_rtos_pop_from_queue(&acq_queue, (void *)&adc, 2000);
+
+    if(err == kNoErr)
+    {
+      server_log("pop_from_queue: %d, err = %d", adc, err);
+
+      volt = get_adc2volt(adc);
+      adc = (uint16_t)(volt * 1000);
+
+      memset((void *)outDataBuffer, 0, strlen((char const *)outDataBuffer));
+      Int2Str(outDataBuffer, adc);
+      strcat((char *)outDataBuffer, "mV");
+
+      server_log("Int2Str: %d, %s, ", adc, outDataBuffer);
+
+      SocketSend( clientFd, outDataBuffer, strlen((char const *)outDataBuffer) );
     }
   }
 
@@ -162,4 +190,9 @@ exit:
     mico_rtos_delete_thread(NULL);
     return;
 }
+
+
+//121.42.139.73
+//gethostbyname
+//sta.jikre.com
 

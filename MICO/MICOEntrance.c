@@ -38,19 +38,13 @@
 
 #include "MICONotificationCenter.h"
 #include "MICOSystemMonitor.h"
-#include "MicoCli.h"
 #include "EasyLink/EasyLink.h"
-#include "SoftAP/EasyLinkSoftAP.h"
 #include "WPS/WPS.h"
 #include "WAC/MFi_WAC.h"
 #include "StringUtils.h"
 
 #if defined (CONFIG_MODE_EASYLINK) || defined (CONFIG_MODE_EASYLINK_WITH_SOFTAP)
 #include "EasyLink/EasyLink.h"
-#endif
-
-#if defined (CONFIG_MODE_AIRKISS)
-#include "Airkiss/Airkiss.h"
 #endif
 
 static mico_Context_t *context;
@@ -63,7 +57,7 @@ const char *eaProtocols[1] = {EA_PROTOCOL};
 #define mico_log(M, ...) custom_log("MICO", M, ##__VA_ARGS__)
 #define mico_log_trace() custom_log_trace("MICO")
 
-WEAK void sendNotifySYSWillPowerOff(void){
+__weak void sendNotifySYSWillPowerOff(void){
 
 }
 
@@ -78,24 +72,13 @@ void micoNotify_ReadAppInfoHandler(char *str, int len, mico_Context_t * const in
 
 
 
-USED void PlatformEasyLinkButtonClickedCallback(void)
+void PlatformEasyLinkButtonClickedCallback(void)
 {
   mico_log_trace();
-  bool needsUpdate = false;
-  
-  if(context->flashContentInRam.micoSystemConfig.easyLinkByPass != EASYLINK_BYPASS_NO){
-    context->flashContentInRam.micoSystemConfig.easyLinkByPass = EASYLINK_BYPASS_NO;
-    needsUpdate = true;
-  }
-
   if(context->flashContentInRam.micoSystemConfig.configured == allConfigured){
     context->flashContentInRam.micoSystemConfig.configured = wLanUnConfigured;
-    needsUpdate = true;
-  }
-  
-  if(needsUpdate == true)
     MICOUpdateConfiguration(context);
-  
+  }
   context->micoStatus.sys_state = eState_Software_Reset;
   require(context->micoStatus.sys_state_change_sem, exit);
   mico_rtos_set_semaphore(&context->micoStatus.sys_state_change_sem);
@@ -103,7 +86,7 @@ exit:
   return;
 }
 
-USED void PlatformEasyLinkButtonLongPressedCallback(void)
+void PlatformEasyLinkButtonLongPressedCallback(void)
 {
   mico_log_trace();
   MICORestoreDefault(context);
@@ -114,7 +97,7 @@ exit:
   return;
 }
 
-USED void PlatformStandbyButtonClickedCallback(void)
+ void PlatformStandbyButtonClickedCallback(void)
  {
     mico_log_trace();
     context->micoStatus.sys_state = eState_Standby;
@@ -135,14 +118,6 @@ void micoNotify_WifiStatusHandler(WiFiEvent event, mico_Context_t * const inCont
     break;
   case NOTIFY_STATION_DOWN:
     mico_log("Station down");
-    MicoRfLed(false);
-    break;
-  case NOTIFY_AP_UP:
-    mico_log("uAP established");
-    MicoRfLed(true);
-    break;
-  case NOTIFY_AP_DOWN:
-    mico_log("uAP deleted");
     MicoRfLed(false);
     break;
   default:
@@ -268,15 +243,31 @@ static void _watchdog_reload_timer_handler( void* arg )
   MICOUpdateSystemMonitor(&mico_monitor, APPLICATION_WATCHDOG_TIMEOUT_SECONDS*1000-100);
 }
 
+static void mico_mfg_test(void)
+{
+  int ret;
+  extern int mfg_test(char *);
+  
+  ret = mfg_test("MXCHIP_CAGE");
+  if (ret == 0)
+    printf("MFG test success\r\n");
+  else {
+    if (ret & 1) 
+      printf("SCAN FAIL\r\n");
+    if (ret & 2)
+      printf("Connect AP FAIL\r\n");
+  }
+  
+  mico_thread_sleep(MICO_NEVER_TIMEOUT);
+}
+
 int application_start(void)
 {
   OSStatus err = kNoErr;
   IPStatusTypedef para;
   struct tm currentTime;
   mico_rtc_time_t time;
-  char wifi_ver[64];
-  mico_log_trace(); 
-
+ 
   /*Read current configurations*/
   context = ( mico_Context_t *)malloc(sizeof(mico_Context_t) );
   require_action( context, exit, err = kNoMemoryErr );
@@ -302,32 +293,13 @@ int application_start(void)
 
   /*wlan driver and tcpip init*/
   MicoInit();
-#ifdef MICO_CLI_ENABLE  
-  MicoCliInit();
-#endif
   MicoSysLed(true);
   mico_log("Free memory %d bytes", MicoGetMemoryInfo()->free_memory) ; 
-  micoWlanGetIPStatus(&para, Station);
-  formatMACAddr(context->micoStatus.mac, (char *)&para.mac);
-  MicoGetRfVer(wifi_ver, sizeof(wifi_ver));
-  mico_log("%s mxchipWNet library version: %s", APP_INFO, MicoGetVer());
-  mico_log("Wi-Fi driver version %s, mac %s", wifi_ver, context->micoStatus.mac);
-
-  /*Start system monotor thread*/
-  err = MICOStartSystemMonitor(context);
-  require_noerr_action( err, exit, mico_log("ERROR: Unable to start the system monitor.") );
-
-  err = MICORegisterSystemMonitor(&mico_monitor, APPLICATION_WATCHDOG_TIMEOUT_SECONDS*1000);
-  require_noerr( err, exit );
-  mico_init_timer(&_watchdog_reload_timer,APPLICATION_WATCHDOG_TIMEOUT_SECONDS*1000 - 100, _watchdog_reload_timer_handler, NULL);
-  mico_start_timer(&_watchdog_reload_timer);
 
   /* Enter test mode, call a build-in test function amd output on STDIO */
-  if(MicoShouldEnterMFGMode()==true){
-    mico_log( "Enter MFG mode by MFG button" );
-    mico_mfg_test(context);
-  }
-  
+  if(MicoShouldEnterMFGMode()==true)
+    mico_mfg_test();
+
   /*Read current time from RTC.*/
   MicoRtcGetTime(&time);
   currentTime.tm_sec = time.sec;
@@ -338,20 +310,27 @@ int application_start(void)
   currentTime.tm_mon = time.month - 1;
   currentTime.tm_year = time.year + 100;
   mico_log("Current Time: %s",asctime(&currentTime));
-  
-  /* Regisist notifications */
-  err = MICOAddNotification( mico_notify_WIFI_STATUS_CHANGED, (void *)micoNotify_WifiStatusHandler );
-  require_noerr( err, exit ); 
 
-  if( context->flashContentInRam.micoSystemConfig.configured == wLanUnConfigured ||
-      context->flashContentInRam.micoSystemConfig.configured == unConfigured){
+  micoWlanGetIPStatus(&para, Station);
+  formatMACAddr(context->micoStatus.mac, (char *)&para.mac);
+  
+  mico_log_trace(); 
+  mico_log("%s mxchipWNet library version: %s", APP_INFO, MicoGetVer());
+
+  /*Start system monotor thread*/
+  err = MICOStartSystemMonitor(context);
+  require_noerr_action( err, exit, mico_log("ERROR: Unable to start the system monitor.") );
+
+  err = MICORegisterSystemMonitor(&mico_monitor, APPLICATION_WATCHDOG_TIMEOUT_SECONDS*1000);
+  require_noerr( err, exit );
+  mico_init_timer(&_watchdog_reload_timer,APPLICATION_WATCHDOG_TIMEOUT_SECONDS*1000 - 100, _watchdog_reload_timer_handler, NULL);
+  mico_start_timer(&_watchdog_reload_timer);
+  
+  if(context->flashContentInRam.micoSystemConfig.configured != allConfigured){
     mico_log("Empty configuration. Starting configuration mode...");
 
-#if (MICO_CONFIG_MODE == CONFIG_MODE_EASYLINK) || (MICO_CONFIG_MODE == CONFIG_MODE_EASYLINK_WITH_SOFTAP)
+#if (MICO_CONFIG_MODE == CONFIG_MODE_EASYLINK) || (MICO_CONFIG_MODE == CONFIG_MODE_EASYLINK_WITH_SOFTAP) || (MICO_CONFIG_MODE == CONFIG_MODE_EASYLINK_PLUS)
   err = startEasyLink( context );
-  require_noerr( err, exit );
-#elif (MICO_CONFIG_MODE == CONFIG_MODE_SOFT_AP)
-  err = startEasyLinkSoftAP( context );
   require_noerr( err, exit );
 #elif (MICO_CONFIG_MODE == CONFIG_MODE_AIRKISS)
   err = startAirkiss( context );
@@ -381,7 +360,7 @@ int application_start(void)
 
   WAC_Params->numEAProtocols =    1;
   WAC_Params->eaBundleSeedID =    BUNDLE_SEED_ID;
-  WAC_Params->eaProtocols =       (char **)eaProtocols;
+  WAC_Params->eaProtocols =       (char **)eaProtocols;;
 
   err = startMFiWAC( context, WAC_Params, 1200);
   free(WAC_Params);
@@ -390,16 +369,12 @@ int application_start(void)
   #error "Wi-Fi configuration mode is not defined"?
 #endif
   }
-#ifdef MFG_MODE_AUTO
-  else if( context->flashContentInRam.micoSystemConfig.configured == mfgConfigured ){
-    mico_log( "Enter MFG mode automatically" );
-    mico_mfg_test(context);
-    mico_thread_sleep(MICO_NEVER_TIMEOUT);
-  }
-#endif
-
   else{
     mico_log("Available configuration. Starting Wi-Fi connection...");
+    
+    /* Regisist notifications */
+    err = MICOAddNotification( mico_notify_WIFI_STATUS_CHANGED, (void *)micoNotify_WifiStatusHandler );
+    require_noerr( err, exit ); 
     
     err = MICOAddNotification( mico_notify_WiFI_PARA_CHANGED, (void *)micoNotify_WiFIParaChangedHandler );
     require_noerr( err, exit ); 
@@ -466,3 +441,5 @@ exit:
   mico_rtos_delete_thread(NULL);
   return kNoErr;
 }
+
+

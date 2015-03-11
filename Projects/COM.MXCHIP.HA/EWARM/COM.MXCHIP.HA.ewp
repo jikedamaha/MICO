@@ -4994,21 +4994,11 @@
       <file>
         <name>$PROJ_DIR$\..\..\..\MICO\EasyLink\EasyLink.c</name>
       </file>
-      <file>
-        <name>$PROJ_DIR$\..\..\..\MICO\SoftAP\EasyLinkSoftAP.c</name>
-      </file>
     </group>
     <group>
       <name>WAC</name>
       <file>
         <name>$PROJ_DIR$\..\..\..\MICO\WAC\MFi_WAC_CM3_Debug.a</name>
-        <excluded>
-          <configuration>EMW3162</configuration>
-          <configuration>MICO_EVB_1</configuration>
-          <configuration>Nucleo_411RE</configuration>
-          <configuration>EMW3165</configuration>
-          <configuration>EMW3161</configuration>
-        </excluded>
       </file>
       <file>
         <name>$PROJ_DIR$\..\..\..\MICO\WAC\MFi_WAC_CM3_Release.a</name>
@@ -5038,9 +5028,6 @@
     </file>
     <file>
       <name>$PROJ_DIR$\..\..\..\MICO\MICOEntrance.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\..\..\..\MICO\MICOMfgtest.c</name>
     </file>
     <file>
       <name>$PROJ_DIR$\..\..\..\MICO\MICONotificationCenter.c</name>

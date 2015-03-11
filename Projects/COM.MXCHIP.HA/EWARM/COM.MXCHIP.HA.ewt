@@ -612,9 +612,6 @@
       <file>
         <name>$PROJ_DIR$\..\..\..\MICO\EasyLink\EasyLink.c</name>
       </file>
-      <file>
-        <name>$PROJ_DIR$\..\..\..\MICO\SoftAP\EasyLinkSoftAP.c</name>
-      </file>
     </group>
     <group>
       <name>WAC</name>
@@ -642,9 +639,6 @@
     </file>
     <file>
       <name>$PROJ_DIR$\..\..\..\MICO\MICOEntrance.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\..\..\..\MICO\MICOMfgtest.c</name>
     </file>
     <file>
       <name>$PROJ_DIR$\..\..\..\MICO\MICONotificationCenter.c</name>

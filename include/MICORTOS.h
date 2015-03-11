@@ -418,7 +418,7 @@ OSStatus mico_rtos_is_queue_full( mico_queue_t* queue );
   *
   * @returns  Time in milliseconds since RTOS started.
   */
-WEAK uint32_t mico_get_time(void);
+uint32_t mico_get_time(void);
 
 /**
   * @brief    Gets time in miiliseconds in no OS mode ( Used in bootloader )
@@ -443,7 +443,7 @@ uint32_t mico_get_time_no_os(void);
   * @return    kNoErr        : on success.
   * @return    kGeneralErr   : if an error occurred
   */
-WEAK OSStatus mico_init_timer( mico_timer_t* timer, uint32_t time_ms, timer_handler_t function, void* arg );
+OSStatus mico_init_timer( mico_timer_t* timer, uint32_t time_ms, timer_handler_t function, void* arg );
 
 
 /** @brief    Starts a RTOS timer running
@@ -455,7 +455,7 @@ WEAK OSStatus mico_init_timer( mico_timer_t* timer, uint32_t time_ms, timer_hand
   * @return   kNoErr        : on success.
   * @return   kGeneralErr   : if an error occurred
   */
-WEAK OSStatus mico_start_timer( mico_timer_t* timer );
+OSStatus mico_start_timer( mico_timer_t* timer );
 
 
 /** @brief    Stops a running RTOS timer
@@ -467,7 +467,7 @@ WEAK OSStatus mico_start_timer( mico_timer_t* timer );
   * @return   kNoErr        : on success.
   * @return   kGeneralErr   : if an error occurred
   */
-WEAK OSStatus mico_stop_timer( mico_timer_t* timer );
+OSStatus mico_stop_timer( mico_timer_t* timer );
 
 
 /** @brief    Reloads a RTOS timer that has expired

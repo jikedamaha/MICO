@@ -31,8 +31,6 @@
 #include "json_tokener.h"
 #include "json_util.h"
 
-#include "StringUtils.h"
-
 #if !HAVE_STRNCASECMP && defined(_MSC_VER)
   /* MSC has the version as _strnicmp */
 # define strncasecmp _strnicmp
@@ -576,6 +574,7 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
         state = json_tokener_state_eatws;
         goto redo_char;
       }
+      break;
 
     case json_tokener_state_array:
       if(c == ']') {

@@ -1,6 +1,6 @@
 /**
   ******************************************************************************
-  * @file    MICOAppEntrance.c 
+  * @file    MICOAppEntrance.c
   * @author  William Xu
   * @version V1.0.0
   * @date    05-May-2014
@@ -17,7 +17,7 @@
   *
   * <h2><center>&copy; COPYRIGHT 2014 MXCHIP Inc.</center></h2>
   ******************************************************************************
-  */ 
+  */
 
 #include "MICODefine.h"
 #include "MICOAppDefine.h"
@@ -26,6 +26,7 @@
 #include "SppProtocol.h"
 
 #include "MicoPlatform.h"
+#include "acquisition.h"
 
 #define app_log(M, ...) custom_log("APP", M, ##__VA_ARGS__)
 #define app_log_trace() custom_log_trace("APP")
@@ -50,14 +51,16 @@ OSStatus MICOStartApplication( mico_Context_t * const inContext )
   app_log_trace();
   OSStatus err = kNoErr;
   mico_uart_config_t uart_config;
-  
+
   require_action(inContext, exit, err = kParamErr);
-  
+
   sppProtocolInit( inContext );
 
   /*Bonjour for service searching*/
   if(inContext->flashContentInRam.micoSystemConfig.bonjourEnable == true)
     MICOStartBonjourService( Station, inContext );
+
+  mico_rtos_init_queue(&acq_queue, NULL, sizeof(uint32_t), 1);
 
   /*UART receive thread*/
   uart_config.baud_rate    = inContext->flashContentInRam.appConfig.USART_BaudRate;
@@ -74,6 +77,7 @@ OSStatus MICOStartApplication( mico_Context_t * const inContext )
   err = mico_rtos_create_thread(NULL, MICO_APPLICATION_PRIORITY, "UART Recv", uartRecv_thread, STACK_SIZE_UART_RECV_THREAD, (void*)inContext );
   require_noerr_action( err, exit, app_log("ERROR: Unable to start the uart recv thread.") );
 
+
  /*Local TCP server thread*/
  if(inContext->flashContentInRam.appConfig.localServerEnable == true){
    err = mico_rtos_create_thread(NULL, MICO_APPLICATION_PRIORITY, "Local Server", localTcpServer_thread, STACK_SIZE_LOCAL_TCP_SERVER_THREAD, (void*)inContext );
@@ -85,6 +89,11 @@ OSStatus MICOStartApplication( mico_Context_t * const inContext )
    err = mico_rtos_create_thread(NULL, MICO_APPLICATION_PRIORITY, "Remote Client", remoteTcpClient_thread, STACK_SIZE_REMOTE_TCP_CLIENT_THREAD, (void*)inContext );
    require_noerr_action( err, exit, app_log("ERROR: Unable to start the remote client thread.") );
  }
+
+  /*ADC thread*/
+  err = mico_rtos_create_thread(NULL, MICO_APPLICATION_PRIORITY, "Acquisition", acquisition_thread, STACK_SIZE_ADC_THREAD, (void*)inContext );
+  require_noerr_action( err, exit, app_log("ERROR: Unable to start the adc thread.") );
+
 
 exit:
   return err;

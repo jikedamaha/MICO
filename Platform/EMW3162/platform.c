@@ -1,6 +1,6 @@
 /**
 ******************************************************************************
-* @file    platform.c 
+* @file    platform.c
 * @author  William Xu
 * @version V1.0.0
 * @date    05-May-2014
@@ -11,9 +11,9 @@
 *  The MIT License
 *  Copyright (c) 2014 MXCHIP Inc.
 *
-*  Permission is hereby granted, free of charge, to any person obtaining a copy 
+*  Permission is hereby granted, free of charge, to any person obtaining a copy
 *  of this software and associated documentation files (the "Software"), to deal
-*  in the Software without restriction, including without limitation the rights 
+*  in the Software without restriction, including without limitation the rights
 *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 *  copies of the Software, and to permit persons to whom the Software is furnished
 *  to do so, subject to the following conditions:
@@ -21,14 +21,14 @@
 *  The above copyright notice and this permission notice shall be included in
 *  all copies or substantial portions of the Software.
 *
-*  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-*  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-*  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+*  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-*  WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR 
+*  WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 *  IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************
-*/ 
+*/
 
 #include "stdio.h"
 #include "string.h"
@@ -42,6 +42,12 @@
 /******************************************************
 *                      Macros
 ******************************************************/
+
+#ifdef __GNUC__
+#define WEAK __attribute__ ((weak))
+#elif defined ( __IAR_SYSTEMS_ICC__ )
+#define WEAK __weak
+#endif /* ifdef __GNUC__ */
 
 /******************************************************
 *                    Constants
@@ -86,7 +92,7 @@ const platform_pin_mapping_t gpio_mapping[] =
   [WL_GPIO1]                          = {GPIOB, 13,  RCC_AHB1Periph_GPIOB},
   [WL_REG]                            = {GPIOC,  1,  RCC_AHB1Periph_GPIOC},
   [WL_RESET]                          = {GPIOC,  5,  RCC_AHB1Periph_GPIOC},
-  [MICO_SYS_LED]                      = {GPIOB,  0,  RCC_AHB1Periph_GPIOB}, 
+  [MICO_SYS_LED]                      = {GPIOB,  0,  RCC_AHB1Periph_GPIOB},
   [MICO_RF_LED]                       = {GPIOB,  1,  RCC_AHB1Periph_GPIOB}, //MICO_GPIO_16
   [BOOT_SEL]                          = {GPIOB,  1,  RCC_AHB1Periph_GPIOB}, //MICO_GPIO_16
   [MFG_SEL]                           = {GPIOB,  9,  RCC_AHB1Periph_GPIOB}, //MICO_GPIO_30
@@ -96,7 +102,7 @@ const platform_pin_mapping_t gpio_mapping[] =
   [MICO_GPIO_1]  = {GPIOB,  6,  RCC_AHB1Periph_GPIOB},
   [MICO_GPIO_2]  = {GPIOB,  7,  RCC_AHB1Periph_GPIOB},
   [MICO_GPIO_4]  = {GPIOC,  7,  RCC_AHB1Periph_GPIOC},
-  [MICO_GPIO_5]  = {GPIOA,  4,  RCC_AHB1Periph_GPIOA},
+  [MICO_GPIO_5]  = {GPIOA,  3,  RCC_AHB1Periph_GPIOA},
   [MICO_GPIO_6]  = {GPIOA,  4,  RCC_AHB1Periph_GPIOA},
   [MICO_GPIO_7]  = {GPIOB,  3,  RCC_AHB1Periph_GPIOB},
   [MICO_GPIO_8]  = {GPIOB , 4,  RCC_AHB1Periph_GPIOB},
@@ -111,7 +117,7 @@ const platform_pin_mapping_t gpio_mapping[] =
   [MICO_GPIO_21] = {GPIOA, 11,  RCC_AHB1Periph_GPIOA},
   [MICO_GPIO_22] = {GPIOA,  9,  RCC_AHB1Periph_GPIOA},
   [MICO_GPIO_23] = {GPIOA, 10,  RCC_AHB1Periph_GPIOA},
-  [MICO_GPIO_29] = {GPIOA,  0,  RCC_AHB1Periph_GPIOA},  
+  [MICO_GPIO_29] = {GPIOA,  0,  RCC_AHB1Periph_GPIOA},
 };
 
 /*
@@ -121,9 +127,12 @@ const platform_pin_mapping_t gpio_mapping[] =
 /* TODO : These need fixing */
 const platform_adc_mapping_t adc_mapping[] =
 {
-  [MICO_ADC_1] = {ADC1, ADC_Channel_1, RCC_APB2Periph_ADC1, 1, (platform_pin_mapping_t*)&gpio_mapping[MICO_GPIO_2]},
+  //[MICO_ADC_1] = {ADC1, ADC_Channel_1, RCC_APB2Periph_ADC1, 1, (platform_pin_mapping_t*)&gpio_mapping[MICO_GPIO_2]},
+  [MICO_ADC_1] = {ADC1, ADC_Channel_3, RCC_APB2Periph_ADC1, 1, (platform_pin_mapping_t*)&gpio_mapping[MICO_GPIO_5]},
+  //[MICO_ADC_1] = {ADC1, ADC_Channel_Vrefint, RCC_APB2Periph_ADC1, 1, (platform_pin_mapping_t*)&gpio_mapping[MICO_GPIO_5]},
   [MICO_ADC_2] = {ADC1, ADC_Channel_2, RCC_APB2Periph_ADC1, 1, (platform_pin_mapping_t*)&gpio_mapping[MICO_GPIO_4]},
-  [MICO_ADC_3] = {ADC1, ADC_Channel_3, RCC_APB2Periph_ADC1, 1, (platform_pin_mapping_t*)&gpio_mapping[MICO_GPIO_5]},
+  //[MICO_ADC_3] = {ADC1, ADC_Channel_3, RCC_APB2Periph_ADC1, 1, (platform_pin_mapping_t*)&gpio_mapping[MICO_GPIO_5]},
+  [MICO_ADC_3] = {ADC1, ADC_Channel_3, RCC_APB2Periph_ADC1, 1, (platform_pin_mapping_t*)&gpio_mapping[MICO_GPIO_2]},
 };
 
 
@@ -134,10 +143,10 @@ const platform_pwm_mapping_t pwm_mappings[] =
   /* Extended PWM for internal use */
   [MICO_PWM_WLAN_POWERSAVE_CLOCK] = {TIM1, 4, RCC_APB2Periph_TIM1, GPIO_AF_TIM1, (platform_pin_mapping_t*)&gpio_mapping[MICO_GPIO_WLAN_POWERSAVE_CLOCK] }, /* or TIM2/Ch2                       */
 #endif
-  
+
   [MICO_PWM_1]  = {TIM4, 3, RCC_APB1Periph_TIM4, GPIO_AF_TIM4, (platform_pin_mapping_t*)&gpio_mapping[MICO_GPIO_10]},    /* or TIM10/Ch1                       */
   [MICO_PWM_2]  = {TIM12, 1, RCC_APB1Periph_TIM12, GPIO_AF_TIM12, (platform_pin_mapping_t*)&gpio_mapping[MICO_GPIO_13]}, /* or TIM1/Ch2N                       */
-  [MICO_PWM_3]  = {TIM2, 4, RCC_APB1Periph_TIM2, GPIO_AF_TIM2, (platform_pin_mapping_t*)&gpio_mapping[MICO_GPIO_19]},    
+  [MICO_PWM_3]  = {TIM2, 4, RCC_APB1Periph_TIM2, GPIO_AF_TIM2, (platform_pin_mapping_t*)&gpio_mapping[MICO_GPIO_19]},
   /* TODO: fill in the other options here ... */
 };
 
@@ -149,9 +158,9 @@ const platform_spi_mapping_t spi_mapping[] =
     .gpio_af               = GPIO_AF_SPI1,
     .peripheral_clock_reg  = RCC_APB2Periph_SPI1,
     .peripheral_clock_func = RCC_APB2PeriphClockCmd,
-    .pin_mosi              = &gpio_mapping[MICO_GPIO_9],
-    .pin_miso              = &gpio_mapping[MICO_GPIO_8],
-    .pin_clock             = &gpio_mapping[MICO_GPIO_7],
+    .pin_mosi              = &gpio_mapping[MICO_GPIO_8],
+    .pin_miso              = &gpio_mapping[MICO_GPIO_7],
+    .pin_clock             = &gpio_mapping[MICO_GPIO_6],
     .tx_dma_stream         = DMA2_Stream5,
     .rx_dma_stream         = DMA2_Stream0,
     .tx_dma_channel        = DMA_Channel_3,
@@ -243,7 +252,7 @@ static void _button_EL_irq_handler( void* arg )
 {
   (void)(arg);
   int interval = -1;
-  
+
   if ( MicoGpioInputGet( (mico_gpio_t)EasyLink_BUTTON ) == 0 ) {
     _default_start_time = mico_get_time()+1;
     mico_start_timer(&_button_EL_timer);
@@ -279,26 +288,19 @@ bool watchdog_check_last_reset( void )
     RCC->CSR |= RCC_CSR_RMVF;
     return true;
   }
-  
+
   return false;
 }
 
 OSStatus mico_platform_init( void )
 {
-#ifdef DEBUG
-#if defined(__CC_ARM)
-	platform_log("Build by Keil");
-#elif defined (__IAR_SYSTEMS_ICC__)
-	platform_log("Build by IAR");
-#endif
-#endif
   platform_log( "Platform initialised" );
-  
+
   if ( true == watchdog_check_last_reset() )
   {
     platform_log( "WARNING: Watchdog reset occured previously. Please see watchdog.c for debugging instructions." );
   }
-  
+
   return kNoErr;
 }
 
@@ -308,12 +310,12 @@ void init_platform( void )
   MicoGpioOutputLow( (mico_gpio_t)MICO_SYS_LED );
   MicoGpioInitialize( (mico_gpio_t)MICO_RF_LED, OUTPUT_OPEN_DRAIN_NO_PULL );
   MicoGpioOutputHigh( (mico_gpio_t)MICO_RF_LED );
-  
+
   //  Initialise EasyLink buttons
   MicoGpioInitialize( (mico_gpio_t)EasyLink_BUTTON, INPUT_PULL_UP );
   mico_init_timer(&_button_EL_timer, RestoreDefault_TimeOut, _button_EL_Timeout_handler, NULL);
   MicoGpioEnableIRQ( (mico_gpio_t)EasyLink_BUTTON, IRQ_TRIGGER_BOTH_EDGES, _button_EL_irq_handler, NULL );
-  
+
   //  Initialise Standby/wakeup switcher
   MicoGpioInitialize( Standby_SEL, INPUT_PULL_UP );
   MicoGpioEnableIRQ( Standby_SEL , IRQ_TRIGGER_FALLING_EDGE, _button_STANDBY_irq_handler, NULL);
@@ -325,7 +327,7 @@ void init_platform_bootloader( void )
   MicoGpioOutputLow( (mico_gpio_t)MICO_SYS_LED );
   MicoGpioInitialize( (mico_gpio_t)MICO_RF_LED, OUTPUT_OPEN_DRAIN_NO_PULL );
   MicoGpioOutputHigh( (mico_gpio_t)MICO_RF_LED );
-  
+
   MicoGpioInitialize((mico_gpio_t)BOOT_SEL, INPUT_PULL_UP);
   MicoGpioInitialize((mico_gpio_t)MFG_SEL, INPUT_HIGH_IMPEDANCE);
 }
@@ -335,11 +337,11 @@ void host_platform_reset_wifi( bool reset_asserted )
 {
   if ( reset_asserted == true )
   {
-    MicoGpioOutputLow( (mico_gpio_t)WL_RESET );  
+    MicoGpioOutputLow( (mico_gpio_t)WL_RESET );
   }
   else
   {
-    MicoGpioOutputHigh( (mico_gpio_t)WL_RESET ); 
+    MicoGpioOutputHigh( (mico_gpio_t)WL_RESET );
   }
 }
 
@@ -347,11 +349,11 @@ void host_platform_power_wifi( bool power_enabled )
 {
   if ( power_enabled == true )
   {
-    MicoGpioOutputLow( (mico_gpio_t)WL_REG );  
+    MicoGpioOutputLow( (mico_gpio_t)WL_REG );
   }
   else
   {
-    MicoGpioOutputHigh( (mico_gpio_t)WL_REG ); 
+    MicoGpioOutputHigh( (mico_gpio_t)WL_REG );
   }
 }
 

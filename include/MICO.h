@@ -86,9 +86,9 @@ typedef struct  {
   * @param  inVersion: Buffer address to store the RF driver. 
   * @param  inLength: Buffer size. 
   *
-  * @return int
+  * @return None
   */
-int MicoGetRfVer( char* outVersion, uint8_t inLength );
+void MicoGetRfVer( char* outVersion, uint8_t inLength );
 
 /**
   * @brief  Get MICO's version.

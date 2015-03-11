@@ -1,6 +1,6 @@
 /**
   ******************************************************************************
-  * @file    MICOAppDefine.h 
+  * @file    MICOAppDefine.h
   * @author  William Xu
   * @version V1.0.0
   * @date    05-May-2014
@@ -18,7 +18,7 @@
   *
   * <h2><center>&copy; COPYRIGHT 2014 MXCHIP Inc.</center></h2>
   ******************************************************************************
-  */ 
+  */
 
 
 #ifndef __MICOAPPDEFINE_H
@@ -28,16 +28,16 @@
 
 #define APP_INFO   "mxchipWNet SPP Demo based on MICO OS"
 
-#define FIRMWARE_REVISION   "MICO_SPP_2_2"
+#define FIRMWARE_REVISION   "MICO_SPP_2_1"
 #define MANUFACTURER        "MXCHIP Inc."
 #define SERIAL_NUMBER       "20140606"
 #define PROTOCOL            "com.mxchip.spp"
 
 /* Wi-Fi configuration mode */
-#define MICO_CONFIG_MODE CONFIG_MODE_EASYLINK_WITH_SOFTAP
+#define MICO_CONFIG_MODE CONFIG_MODE_EASYLINK_PLUS
 
 /*User provided configurations*/
-#define CONFIGURATION_VERSION               0x00000002 // if default configuration is changed, update this number
+#define CONFIGURATION_VERSION               0x00000001 // if default configuration is changed, update this number
 #define MAX_Local_Client_Num                8
 #define LOCAL_PORT                          8080
 #define DEAFULT_REMOTE_SERVER               "192.168.2.254"
@@ -46,6 +46,7 @@
 #define UART_ONE_PACKAGE_LENGTH             1024
 #define wlanBufferLen                       1024
 #define UART_BUFFER_LENGTH                  2048
+#define UART_FOR_APP                        MICO_UART_1
 
 #define LOCAL_TCP_SERVER_LOOPBACK_PORT      1000
 #define REMOTE_TCP_CLIENT_LOOPBACK_PORT     1002
@@ -59,11 +60,13 @@
   #define STACK_SIZE_LOCAL_TCP_SERVER_THREAD    0x300
   #define STACK_SIZE_LOCAL_TCP_CLIENT_THREAD    0x350
   #define STACK_SIZE_REMOTE_TCP_CLIENT_THREAD   0x500
+  #define STACK_SIZE_ADC_THREAD                 0x500
 #else
   #define STACK_SIZE_UART_RECV_THREAD           0x150
   #define STACK_SIZE_LOCAL_TCP_SERVER_THREAD    0x180
   #define STACK_SIZE_LOCAL_TCP_CLIENT_THREAD    0x200
   #define STACK_SIZE_REMOTE_TCP_CLIENT_THREAD   0x260
+  #define STACK_SIZE_ADC_THREAD                 0x200
 #endif
 
 /*Application's configuration stores in flash*/
@@ -94,6 +97,8 @@ typedef struct _current_app_status_t {
 void localTcpServer_thread(void *inContext);
 void remoteTcpClient_thread(void *inContext);
 void uartRecv_thread(void *inContext);
+void acquisition_thread(void *inContext);
+
 
 #endif
 

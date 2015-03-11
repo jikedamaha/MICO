@@ -35,35 +35,22 @@
 #include "Platform.h"
 #include "Platform_common_config.h"
 #include "HTTPUtils.h"
-#include "MICONotificationCenter.h"
-#include "StringUtils.h"
+
 
 #define config_log(M, ...) custom_log("CONFIG SERVER", M, ##__VA_ARGS__)
 #define config_log_trace() custom_log_trace("CONFIG SERVER")
 
-#define kCONFIGURLRead          "/config-read"
-#define kCONFIGURLWrite         "/config-write"
-#define kCONFIGURLWriteByUAP    "/config-write-uap"  /* Don't reboot but connect to AP immediately */
-#define kCONFIGURLOTA           "/OTA"
-
-#define kMIMEType_MXCHIP_OTA    "application/ota-stream"
-
-typedef struct _configContext_t{
-  uint32_t flashStorageAddress;
-  bool     isFlashLocked;
-} configContext_t;
+#define kCONFIGURLRead    "/config-read"
+#define kCONFIGURLWrite   "/config-write"
+#define kCONFIGURLOTA     "/OTA"
 
 extern OSStatus     ConfigIncommingJsonMessage( const char *input, mico_Context_t * const inContext );
-extern OSStatus     ConfigIncommingJsonMessageUAP( const char *input, mico_Context_t * const inContext );
 extern json_object* ConfigCreateReportJsonMessage( mico_Context_t * const inContext );
 
 static void localConfiglistener_thread(void *inContext);
 static void localConfig_thread(void *inFd);
 static mico_Context_t *Context;
 static OSStatus _LocalConfigRespondInComingMessage(int fd, HTTPHeader_t* inHeader, mico_Context_t * const inContext);
-static void _easylinkConnectWiFi( mico_Context_t * const inContext);
-static OSStatus onReceivedData(struct _HTTPHeader_t * httpHeader, uint32_t pos, uint8_t * data, size_t len, void * userContext );
-static void onClearHTTPHeader(struct _HTTPHeader_t * httpHeader, void * userContext );
 
 OSStatus MICOStartConfigServer ( mico_Context_t * const inContext )
 {
@@ -127,16 +114,14 @@ void localConfig_thread(void *inFd)
   fd_set readfds;
   struct timeval_t t;
   HTTPHeader_t *httpHeader = NULL;
-  configContext_t httpContext = {0, false};
 
   config_log_trace();
-  httpHeader = HTTPHeaderCreateWithCallback(onReceivedData, onClearHTTPHeader, &httpContext);
+  httpHeader = HTTPHeaderCreate();
   require_action( httpHeader, exit, err = kNoMemoryErr );
   HTTPHeaderClear( httpHeader );
 
   t.tv_sec = 60;
   t.tv_usec = 0;
-  config_log("Free memory %d bytes", MicoGetMemoryInfo()->free_memory) ; 
 
   while(1){
     FD_ZERO(&readfds);
@@ -144,7 +129,7 @@ void localConfig_thread(void *inFd)
     clientFdIsSet = 0;
 
     if(httpHeader->len == 0){
-      require(select(1, &readfds, NULL, NULL, &t) >= 0, exit);
+      err = select(1, &readfds, NULL, NULL, &t);
       clientFdIsSet = FD_ISSET(clientFd, &readfds);
     }
   
@@ -155,31 +140,16 @@ void localConfig_thread(void *inFd)
       {
         case kNoErr:
           // Read the rest of the HTTP body if necessary
-          //do{
-          err = SocketReadHTTPBody( clientFd, httpHeader );
-          
-          if(httpHeader->dataEndedbyClose == true){
+          do{
+            err = SocketReadHTTPBody( clientFd, httpHeader );
+            require_noerr(err, exit);
+
+            // Call the HTTPServer owner back with the acquired HTTP header
             err = _LocalConfigRespondInComingMessage( clientFd, httpHeader, Context );
-            require_noerr(err, exit);
-            err = kConnectionErr;
-            goto exit;
-          }else{
-            require_noerr(err, exit);
-            err = _LocalConfigRespondInComingMessage( clientFd, httpHeader, Context );
-            require_noerr(err, exit);
-          }
-          
-
-
-          //  if(httpHeader->contentLength == 0)
-          //    break;
-          //} while( httpHeader->chunkedData == true || httpHeader->dataEndedbyClose == true);
-
-          // Call the HTTPServer owner back with the acquired HTTP header
-          //err = _LocalConfigRespondInComingMessage( clientFd, httpHeader, Context );
-          //
-          //Exit if connection is closed
-          //require_noerr(err, exit); 
+            require_noerr( err, exit ); 
+            if(httpHeader->contentLength == 0)
+              break;
+          } while( httpHeader->chunkedData == true || httpHeader->dataEndedbyClose == true);
       
           // Reuse HTTPHeader
           HTTPHeaderClear( httpHeader );
@@ -192,12 +162,14 @@ void localConfig_thread(void *inFd)
         case kNoSpaceErr:
           config_log("ERROR: Cannot fit HTTPHeader.");
           goto exit;
-        
+        break;
+
         case kConnectionErr:
           // NOTE: kConnectionErr from SocketReadHTTPHeader means it's closed
           config_log("ERROR: Connection closed.");
           goto exit;
-
+           //goto Reconn;
+        break;
         default:
           config_log("ERROR: HTTP Header parse internal error: %d", err);
           goto exit;
@@ -208,74 +180,10 @@ void localConfig_thread(void *inFd)
 exit:
   config_log("Exit: Client exit with err = %d", err);
   SocketClose(&clientFd);
-  if(httpHeader) {
-    HTTPHeaderClear( httpHeader );
-    free(httpHeader);
-  }
+  if(httpHeader) free(httpHeader);
   mico_rtos_delete_thread(NULL);
   return;
 }
-
-static OSStatus onReceivedData(struct _HTTPHeader_t * inHeader, uint32_t inPos, uint8_t * inData, size_t inLen, void * inUserContext )
-{
-  OSStatus err = kUnknownErr;
-  const char *    value;
-  size_t          valueSize;
-  configContext_t *context = (configContext_t *)inUserContext;
-
-  err = HTTPGetHeaderField( inHeader->buf, inHeader->len, "Content-Type", NULL, NULL, &value, &valueSize, NULL );
-  if(err == kNoErr && strnicmpx( value, valueSize, kMIMEType_MXCHIP_OTA ) == 0){
-    config_log("OTA data %d, %d to: %x", inPos, inLen, context->flashStorageAddress);
-#ifdef MICO_FLASH_FOR_UPDATE  
-    if(inPos == 0){
-      context->flashStorageAddress = UPDATE_START_ADDRESS;
-      mico_rtos_lock_mutex(&Context->flashContentInRam_mutex); //We are write the Flash content, no other write is possiable
-      context->isFlashLocked = true;
-      err = MicoFlashInitialize( MICO_FLASH_FOR_UPDATE );
-      require_noerr(err, flashErrExit);
-      err = MicoFlashErase(MICO_FLASH_FOR_UPDATE, UPDATE_START_ADDRESS, UPDATE_END_ADDRESS);
-      require_noerr(err, flashErrExit);
-      err = MicoFlashWrite(MICO_FLASH_FOR_UPDATE, &context->flashStorageAddress, (uint8_t *)inData, inLen);
-      require_noerr(err, flashErrExit);
-    }else{
-      err = MicoFlashWrite(MICO_FLASH_FOR_UPDATE, &context->flashStorageAddress, (uint8_t *)inData, inLen);
-      require_noerr(err, flashErrExit);
-    }
-#else
-    config_log("OTA storage is not exist");
-    return kUnsupportedErr;
-#endif
-  }
-  else if(inHeader->chunkedData == true){
-    config_log("ChunkedData: %d, %d:", inPos, inLen);
-    for(uint32_t i = 0; i<inLen; i++)
-      printf("%c", inData[i]);
-    printf("\r\n");
-  }
-  else{
-    return kUnsupportedErr;
-  }
-
-  if(err!=kNoErr)  config_log("onReceivedData");
-  return err;
-
-flashErrExit:
-  MicoFlashFinalize(MICO_FLASH_FOR_UPDATE);
-  mico_rtos_unlock_mutex(&Context->flashContentInRam_mutex);
-  return err;
-}
-
-static void onClearHTTPHeader(struct _HTTPHeader_t * inHeader, void * inUserContext )
-{
-  UNUSED_PARAMETER(inHeader);
-  configContext_t *context = (configContext_t *)inUserContext;
-
-  if(context->isFlashLocked == true){
-    mico_rtos_unlock_mutex(&Context->flashContentInRam_mutex);
-    context->isFlashLocked = false;
-  }
- }
-
 
 
 OSStatus _LocalConfigRespondInComingMessage(int fd, HTTPHeader_t* inHeader, mico_Context_t * const inContext)
@@ -286,6 +194,18 @@ OSStatus _LocalConfigRespondInComingMessage(int fd, HTTPHeader_t* inHeader, mico
   size_t httpResponseLen = 0;
   json_object* report = NULL;
   config_log_trace();
+
+#if 1
+  /* This is a demo code for http package has chunked data */
+  char *tempStr;
+  if(inHeader->chunkedData == true){
+    tempStr = calloc(inHeader->contentLength+1, sizeof(uint8_t));
+    memcpy(tempStr, inHeader->extraDataPtr, inHeader->contentLength);
+    config_log("Recv==>%s", tempStr);
+    free(tempStr);
+    return kNoErr;
+  }
+#endif
 
   if(HTTPHeaderMatchURL( inHeader, kCONFIGURLRead ) == kNoErr){    
     report = ConfigCreateReportJsonMessage( inContext );
@@ -301,6 +221,8 @@ OSStatus _LocalConfigRespondInComingMessage(int fd, HTTPHeader_t* inHeader, mico
     err = SocketSend( fd, (uint8_t *)json_str, strlen(json_str) );
     require_noerr( err, exit );
     config_log("Current configuration sent");
+    SocketClose(&fd);
+    err = kConnectionErr; //Return an err to close the current thread
     goto exit;
   }
   else if(HTTPHeaderMatchURL( inHeader, kCONFIGURLWrite ) == kNoErr){
@@ -308,40 +230,14 @@ OSStatus _LocalConfigRespondInComingMessage(int fd, HTTPHeader_t* inHeader, mico
       config_log("Recv new configuration, apply and reset");
       err = ConfigIncommingJsonMessage( inHeader->extraDataPtr, inContext);
       require_noerr( err, exit );
-      inContext->flashContentInRam.micoSystemConfig.configured = allConfigured;
-      MICOUpdateConfiguration(inContext);
-
       err =  CreateSimpleHTTPOKMessage( &httpResponse, &httpResponseLen );
       require_noerr( err, exit );
       require( httpResponse, exit );
       err = SocketSend( fd, httpResponse, httpResponseLen );
       SocketClose(&fd);
       inContext->micoStatus.sys_state = eState_Software_Reset;
-      if(inContext->micoStatus.sys_state_change_sem != NULL );
-        mico_rtos_set_semaphore(&inContext->micoStatus.sys_state_change_sem);
-      mico_thread_sleep(MICO_WAIT_FOREVER);
-    }
-    goto exit;
-  }
-else if(HTTPHeaderMatchURL( inHeader, kCONFIGURLWriteByUAP ) == kNoErr){
-    if(inHeader->contentLength > 0){
-      config_log("Recv new configuration from uAP, apply and connect to AP");
-      err = ConfigIncommingJsonMessageUAP( inHeader->extraDataPtr, inContext);
-      require_noerr( err, exit );
-      MICOUpdateConfiguration(inContext);
-
-      err =  CreateSimpleHTTPOKMessage( &httpResponse, &httpResponseLen );
-      require_noerr( err, exit );
-      require( httpResponse, exit );
-
-      err = SocketSend( fd, httpResponse, httpResponseLen );
-      require_noerr( err, exit );
-      sleep(1);
-
-      micoWlanSuspendSoftAP();
-      _easylinkConnectWiFi( inContext );
-
-      err = kConnectionErr; //Return an err to close socket and exit the current thread
+      require(inContext->micoStatus.sys_state_change_sem, exit);
+      mico_rtos_set_semaphore(&inContext->micoStatus.sys_state_change_sem);
     }
     goto exit;
   }
@@ -349,19 +245,18 @@ else if(HTTPHeaderMatchURL( inHeader, kCONFIGURLWriteByUAP ) == kNoErr){
   else if(HTTPHeaderMatchURL( inHeader, kCONFIGURLOTA ) == kNoErr){
     if(inHeader->contentLength > 0){
       config_log("Receive OTA data!");
+      mico_rtos_lock_mutex(&inContext->flashContentInRam_mutex);
       memset(&inContext->flashContentInRam.bootTable, 0, sizeof(boot_table_t));
       inContext->flashContentInRam.bootTable.length = inHeader->contentLength;
       inContext->flashContentInRam.bootTable.start_address = UPDATE_START_ADDRESS;
       inContext->flashContentInRam.bootTable.type = 'A';
       inContext->flashContentInRam.bootTable.upgrade_type = 'U';
-      if(inContext->flashContentInRam.micoSystemConfig.configured != allConfigured)
-        inContext->flashContentInRam.micoSystemConfig.easyLinkByPass = EASYLINK_SOFT_AP_BYPASS;
       MICOUpdateConfiguration(inContext);
+      mico_rtos_unlock_mutex(&inContext->flashContentInRam_mutex);
       SocketClose(&fd);
       inContext->micoStatus.sys_state = eState_Software_Reset;
-      if(inContext->micoStatus.sys_state_change_sem != NULL );
-        mico_rtos_set_semaphore(&inContext->micoStatus.sys_state_change_sem);
-      mico_thread_sleep(MICO_WAIT_FOREVER);
+      require(inContext->micoStatus.sys_state_change_sem, exit);
+      mico_rtos_set_semaphore(&inContext->micoStatus.sys_state_change_sem);
     }
     goto exit;
   }
@@ -371,36 +266,11 @@ else if(HTTPHeaderMatchURL( inHeader, kCONFIGURLWriteByUAP ) == kNoErr){
   };
 
  exit:
-  if(inHeader->persistent == false)  //Return an err to close socket and exit the current thread
-    err = kConnectionErr;
   if(httpResponse)  free(httpResponse);
   if(report)        json_object_put(report);
 
   return err;
 
-}
-
-static void _easylinkConnectWiFi( mico_Context_t * const inContext)
-{
-  config_log_trace();
-  network_InitTypeDef_adv_st wNetConfig;
-  memset(&wNetConfig, 0x0, sizeof(network_InitTypeDef_adv_st));
-  
-  mico_rtos_lock_mutex(&inContext->flashContentInRam_mutex);
-  strncpy((char*)wNetConfig.ap_info.ssid, inContext->flashContentInRam.micoSystemConfig.ssid, maxSsidLen);
-  wNetConfig.ap_info.security = SECURITY_TYPE_AUTO;
-  memcpy(wNetConfig.key, inContext->flashContentInRam.micoSystemConfig.user_key, maxKeyLen);
-  wNetConfig.key_len = inContext->flashContentInRam.micoSystemConfig.user_keyLength;
-  wNetConfig.dhcpMode = inContext->flashContentInRam.micoSystemConfig.dhcpEnable;
-  strncpy((char*)wNetConfig.local_ip_addr, inContext->flashContentInRam.micoSystemConfig.localIp, maxIpLen);
-  strncpy((char*)wNetConfig.net_mask, inContext->flashContentInRam.micoSystemConfig.netMask, maxIpLen);
-  strncpy((char*)wNetConfig.gateway_ip_addr, inContext->flashContentInRam.micoSystemConfig.gateWay, maxIpLen);
-  strncpy((char*)wNetConfig.dnsServer_ip_addr, inContext->flashContentInRam.micoSystemConfig.dnsServer, maxIpLen);
-
-  wNetConfig.wifi_retry_interval = 100;
-  mico_rtos_unlock_mutex(&inContext->flashContentInRam_mutex);
-  micoWlanStartAdv(&wNetConfig);
-  config_log("connect to %s.....", wNetConfig.ap_info.ssid);
 }
 
 

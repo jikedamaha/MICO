@@ -33,17 +33,6 @@
 
 #define TARGET_RT_LITTLE_ENDIAN
 
-#ifdef __GNUC__
-#define WEAK __attribute__ ((weak))
-#define USED __attribute__ ((used))
-#elif defined ( __ICCARM__ )
-#define WEAK __weak
-#define USED 
-#elif defined ( __CC_ARM ) //KEIL
-#define WEAK __attribute__ ((weak))
-#define USED __attribute__ ((used))
-#endif 
-
 // ==== COMPATIBILITY TYPES
 typedef uint8_t         Boolean;
 
@@ -53,6 +42,10 @@ typedef uint8_t         Boolean;
 
 #ifndef ssize_t
 #define ssize_t int
+#endif
+
+#ifndef size_t
+#define size_t  unsigned int
 #endif
 
 // ==== OSStatus ====
