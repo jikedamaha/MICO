@@ -133,7 +133,7 @@ void remoteTcpClient_thread(void *inContext)
         volt = volt /28.5 * 36.8; /*volt*/
         i = 200 / 3.0 * volt ;
 
-        sprintf( (char *)outDataBuffer, "/JIIS/listener?i=123456789012345&a=%1.3f", i);
+        sprintf( (char *)outDataBuffer, "/JIIS/listener?i=%s&a=%1.3f&s=%d", Context->flashContentInRam.micoSystemConfig.name, i,acq_message_rcv.on_off);
 
         err = CreateHTTPMessage("GET", (const char *)outDataBuffer, NULL, NULL, 0, (uint8_t **)&httpRequest, (size_t *)&len);
         require_noerr( err, exit );

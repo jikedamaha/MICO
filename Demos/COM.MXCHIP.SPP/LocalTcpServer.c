@@ -172,8 +172,21 @@ void localTcpClient_thread(void *inFd)
       adc = (uint16_t)(volt * 1000);
 
       memset((void *)outDataBuffer, 0, strlen((char const *)outDataBuffer));
-      Int2Str(outDataBuffer, adc);
-      strcat((char *)outDataBuffer, "mV");
+
+      sprintf( (char *)outDataBuffer, "IMEI:%s", Context->flashContentInRam.micoSystemConfig.name);
+      strcat((char *)outDataBuffer, "\n");
+
+      Int2Str(outDataBuffer + strlen((char *)outDataBuffer), adc);
+      strcat((char *)outDataBuffer, "mV, ");
+
+      if(acq_message_rcv.on_off & 0x01)
+      {
+        strcat((char *)outDataBuffer, "ON");
+      }
+      else
+      {
+        strcat((char *)outDataBuffer, "OFF");
+      }
 
       server_log("Int2Str: %d, %s, ", adc, outDataBuffer);
 

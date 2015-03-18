@@ -27,7 +27,11 @@ void acquisition_thread(void *inFd)
     acquisition_log("MicoAdcInitialize err = %d", err);
   }
 
-  err = Mico
+  err = MicoGpioInitialize(MICO_GPIO_6, INPUT_PULL_UP);
+  if(!err)
+  {
+    acquisition_log("MicoGpioInitialize err = %d", err);
+  }
 
   sleep(10);
 
@@ -59,10 +63,16 @@ void acquisition_thread(void *inFd)
 
     err = MicoAdcTakeSample(MICO_ADC_1, (uint16_t *)&acq_message.adc_value[0]);
     acquisition_log("MicoAdcTakeSample: %d, err = %d", acq_message.adc_value[0], err);
+
+    acq_message.on_off = 0;
+    acq_message.on_off |= MicoGpioInputGet(MICO_GPIO_6);
+    acquisition_log("MicoGpioInputGet: 0x%x", acq_message.on_off);
+
+
     if(!err)
     {
       err = mico_rtos_push_to_queue(&acq_queue, (void *)&acq_message, 0);
-      acquisition_log("adc_value pushed");
+      acquisition_log("acq_message pushed");
     }
 
     sleep(6);
